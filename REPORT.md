@@ -18,9 +18,9 @@ Tôi đếm trên cây Qwen3-VL-4B-Instruct thật, dùng model trên thiết b�
 
 | Setup | Phần cập nhật | Module LoRA | Tham số huấn luyện đo trên T4 |
 |---|---|---:|---:|
-| E1 | LoRA attention/MLP của LLM; embedding, lm_head, ViT và projector đóng băng | 33.030.144 | 6,4353 | 38,6841 
-| E2 | E1 và toàn bộ merger/deepstack merger | 142.135.296 | 8,1285 | 39,7675 
-| E3 | E2 và LoRA attention/MLP của ViT | 148.426.752 | 8,3067 | 48,1279 
+| E1 | LoRA attention/MLP của LLM; embedding, lm_head, ViT và projector đóng băng | 252 | 33.030.144 |
+| E2 | E1 và toàn bộ merger/deepstack merger | 252 | 142.135.296 |
+| E3 | E2 và LoRA attention/MLP của ViT | 348 | 148.426.752 |
 
 E2 − E1 = 109.105.152, đúng bằng số tham số projector. E3 thêm 96 module LoRA vision và 6.291.456 tham số; đây là LoRA trên ViT, không mở toàn bộ trọng số ViT.
 
