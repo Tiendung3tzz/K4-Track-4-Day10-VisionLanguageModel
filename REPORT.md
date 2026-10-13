@@ -1,5 +1,5 @@
-Họ tên: <điền họ tên>
-`dataset_version`: <điền, lấy từ data/splits/meta.json>
+Họ tên: Tống Trần Tiến Dũng
+`dataset_version`: d10-21e4070301
 
 ## Bảng tổng hợp (số của bạn, lấy từ `report/evidence/*.json`)
 
@@ -29,7 +29,15 @@ Họ tên: <điền họ tên>
 <điền>
 
 ### Câu 6 — Split theo phiên quay: vì sao chia ngẫu nhiên sẽ cho F1 cao giả? Số ảnh và số box từng lớp ở mỗi split là bao nhiêu?
-<điền>
+Dữ liệu gồm các frame cắt từ video, nên các frame gần nhau thường cùng mặt đường, ánh sáng và vị trí hư hại. Chia ngẫu nhiên có thể đưa các ảnh gần trùng vào cả train và test; mô hình nhận lại cảnh đã học khiến F1 cao giả và không phản ánh khả năng tổng quát sang phiên quay khác. Tôi dùng split cố định do prepare_data.py sinh và kiểm tra giao tập session của train/val/test đều rỗng.
+
+| Split | Ảnh | pothole | crack | manhole |
+|---|---:|---:|---:|---:|
+| train | 1422 | 1074 | 1750 | 691 |
+| val | 276 | 66 | 470 | 103 |
+| test | 311 | 121 | 299 | 163 |
+
+Các số được đo lại trên dataset_version d10-21e4070301. Tập val chỉ có 66 box pothole, so với 470 crack và 103 manhole; vì vậy cần đọc F1 từng lớp thay vì chỉ nhìn F1 micro. Có một box crack trong train với chiều cao bằng 0; notebook thông báo và bỏ box suy biến khỏi đáp án SFT, còn dữ liệu/split và GT của trọng tài giữ nguyên.
 
 ### Câu 7 — So sánh E1/E2/E3: mở projector và LoRA trên ViT có đáng không (F1, CI95, VRAM, thời gian)?
 <điền>
