@@ -25,7 +25,9 @@ E0 dùng Tesla T4: VRAM đỉnh 3,7785 GiB, thời gian suy luận 10,3079 phút
 Cùng 311 output E0, chấm đúng `coord="norm1000"` cho F1 = 0,1005; gọi evaluate của scripts.score với `coord="pixel"` cho F1 = 0,0000. Tôi giữ nguyên ảnh, nhãn và output, chỉ đổi cách diễn giải toạ độ để kiểm chứng. Ví dụ x = 1000 theo norm1000 là mép phải ảnh 640 pixel; nếu coi là 1000 pixel rồi đổi lại về norm1000, nó thành 1562,5. Với trục y, 1000 pixel thành 2777,8 trên ảnh cao 360 pixel. Box bị phóng to/dịch vị trí nên không đạt IoU 0,5. Thang 0–1000 mô tả vị trí tương đối độc lập độ phân giải; bước quy ngược toàn bộ nhãn đã đo sai số làm tròn tối đa 0,32 pixel và vẽ hai bộ box chồng nhau.
 
 ### Câu 4 — Mask loss: vì sao chỉ tính loss trên phần trả lời? Điều gì xảy ra nếu tính trên cả prompt và token ảnh?
-<điền>
+Tôi kiểm tra trên Colab T4: ảnh 640×360 có đúng 220 token ảnh và toàn bộ labels tại token ảnh đều bằng -100. Giải mã riêng các token được tính loss cho JSON GT của ví dụ đầu tiên (9 box) rồi kết thúc bằng `<|im_end|>`; tôi cũng assert chuỗi prompt là tiền tố chính xác của hội thoại đầy đủ. Batch hai ảnh có input_ids/labels/attention_mask/mm_token_type_ids cùng shape (2,585), pixel_values (1760,1536) và image_grid_thw (2,3); padding của labels là -100.
+
+Mục tiêu là học P(JSON đáp án | ảnh, prompt), nên loss chỉ tính trên đáp án và token kết thúc. Prompt và token ảnh là điều kiện đã cung cấp, không phải nội dung cần dự đoán. Nếu tính loss trên cả prompt/220 token ảnh, phần cố định có thể chiếm nhiều vị trí, làm loss giảm nhờ học lặp lại mẫu hội thoại và placeholder ảnh thay vì học box/lớp. Điều đó làm loss tổng khó diễn giải và phân tán cập nhật khỏi nhiệm vụ grounding; tôi không chạy đối chứng unmasked nên không gán một mức giảm F1 cụ thể cho lỗi này.
 
 ### Câu 5 — Vì sao không thể huấn luyện đầy đủ projector nếu ViT bị lượng tử hoá 4-bit, và bạn đã xử lý thế nào? Vì sao projector phải ở float32?
 <điền>
