@@ -6,9 +6,9 @@ Họ tên: Tống Trần Tiến Dũng
 | Mã | Setup | Tham số huấn luyện | VRAM đỉnh (GB) | Phút | F1 | CI95 | FP/ảnh | F1 pothole | F1 crack | F1 manhole |
 |---|---|---|---|---|---|---|---|---|---|---|
 | E0 | zero-shot | 0 | 3,7785 | 10,3079 | 0,1005 | [0,0738; 0,1292] | 0,9807 | 0,1310 | 0,0271 | 0,2311 |
-| E1 | LoRA LLM | | | | | | | | | |
-| E2 | + projector | | | | | | | | | |
-| E3 | + LoRA ViT | | | | | | | | | |
+| E1 | LoRA LLM | 33.030.144 | 6,4353 | 38,6841 | | | | | | |
+| E2 | + projector | 142.135.296 | 8,1285 | 39,7675 | | | | | | |
+| E3 | + LoRA ViT | 148.426.752 | 8,3067 | 48,1279 | | | | | | |
 | E4 | (ghi biến và giá trị) | | | | | | | | | |
 
 ## 10 câu hỏi (trả lời bằng **số của bạn**, không chép lại tài liệu)
@@ -18,14 +18,14 @@ Tôi đếm trên cây Qwen3-VL-4B-Instruct thật, dùng model trên thiết b�
 
 | Setup | Phần cập nhật | Module LoRA | Tham số huấn luyện đo trên T4 |
 |---|---|---:|---:|
-| E1 | LoRA attention/MLP của LLM; embedding, lm_head, ViT và projector đóng băng | 252 | 33.030.144 |
-| E2 | E1 và toàn bộ merger/deepstack merger | 252 | 142.135.296 |
-| E3 | E2 và LoRA attention/MLP của ViT | 348 | 148.426.752 |
+| E1 | LoRA attention/MLP của LLM; embedding, lm_head, ViT và projector đóng băng | 33.030.144 | 6,4353 | 38,6841 
+| E2 | E1 và toàn bộ merger/deepstack merger | 142.135.296 | 8,1285 | 39,7675 
+| E3 | E2 và LoRA attention/MLP của ViT | 148.426.752 | 8,3067 | 48,1279 
 
 E2 − E1 = 109.105.152, đúng bằng số tham số projector. E3 thêm 96 module LoRA vision và 6.291.456 tham số; đây là LoRA trên ViT, không mở toàn bộ trọng số ViT.
 
 ### Câu 2 — E0: `parse_valid_rate` bằng bao nhiêu, và hai lỗi phổ biến nhất của model gốc là gì (kèm một ví dụ output thô)?
-E0 có parse_valid_rate = 300/311 = 96,4630%; đủ 311 dự đoán, không thiếu ảnh. F1 = 0,1005, precision = 0,1335, recall = 0,0806; có 47 TP, 305 FP và 536 FN. Hai lỗi nổi bật là bỏ sót hư hại và định vị box quá rộng/lệch vị trí: 11 ảnh trả `[]` dù có GT, còn crack chỉ có 7 TP nhưng 210 FP và 292 FN. Ví dụ output thô của `vlcsnap-00203` là `[{"label":"crack","bbox_2d":[0,457,1000,999]}]`; GT crack là khoảng [321,875; 630,556; 759,375; 775,000], nên box gần phủ cả nửa dưới ảnh không đạt IoU 0,5. Với `vlcsnap-00200`, output `[{"label":"manhole","bbox_2d":[759,634,845,687]}]` vừa bỏ sót crack vừa lệch khỏi manhole thật. Năm output đầu không bọc markdown và không có chữ thừa; 11 output không parse được trên toàn test cho thấy lỗi định dạng vẫn có.
+E0 có parse_valid_rate = 300/311 = 96,4630%; đủ 311 dự đoán, không thiếu ảnh. F1 = 0,1005, precision = 0,1335, recall = 0,0806; có 47 TP, 305 FP và 536 FN. Hai lỗi nổi bật là bỏ sót hư hại và định vị box quá rộng/lệch vị trí: 11 ảnh trả `[]` dù có GT, còn crack chỉ có 7 TP nhưng 210 FP và 292 FN. Ví dụ output thô của `vlcsnap-00203` là `[{"label":"crack","bbox_2d":[0, 457, 1000, 999]}]`; GT crack là khoảng [321,875; 630,556; 759,375; 775,000], nên box gần phủ cả nửa dưới ảnh không đạt IoU 0,5. Với `vlcsnap-00200`, output `[{"label":"manhole","bbox_2d":[759, 634, 845, 687]}]` vừa bỏ sót crack vừa lệch khỏi manhole thật. Năm output đầu không bọc markdown và không có chữ thừa; 11 output không parse được trên toàn test cho thấy lỗi định dạng vẫn có.
 
 E0 dùng Tesla T4: VRAM đỉnh 3,7785 GiB, thời gian suy luận 10,3079 phút, đo bằng torch.cuda.max_memory_allocated và perf_counter trong cell E0. Cột Phút của E0 là suy luận; các thí nghiệm huấn luyện sẽ ghi thời gian train.
 
@@ -51,7 +51,7 @@ Dữ liệu gồm các frame cắt từ video, nên các frame gần nhau thư�
 | val | 276 | 66 | 470 | 103 |
 | test | 311 | 121 | 299 | 163 |
 
-Các số được đo lại trên dataset_version d10-21e4070301. Tập val chỉ có 66 box pothole, so với 470 crack và 103 manhole; vì vậy cần đọc F1 từng lớp thay vì chỉ nhìn F1 micro. Có một box crack trong train với chiều cao bằng 0; notebook thông báo và bỏ box suy biến khỏi đáp án SFT, còn dữ liệu/split và GT của trọng tài giữ nguyên.
+Các số được đo lại trên dataset_version d10-21e4070301. Tôi đếm được 13 giá trị session ở train, 2 ở val và 3 ở test. Với tên ảnh chỉ có số, trọng tài định nghĩa session bằng số thứ tự chia nguyên cho 50; đây là cách gom do đề quy định, chưa chứng minh mỗi nhóm là một phiên quay vật lý độc lập. Tôi giữ nguyên split và chỉ xác nhận các giá trị session không giao nhau. Tập val chỉ có 66 box pothole, so với 470 crack và 103 manhole; vì vậy cần đọc F1 từng lớp thay vì chỉ nhìn F1 micro. Có một box crack trong train với chiều cao bằng 0; notebook thông báo và bỏ box suy biến khỏi đáp án SFT, còn dữ liệu/split và GT của trọng tài giữ nguyên.
 
 ### Câu 7 — So sánh E1/E2/E3: mở projector và LoRA trên ViT có đáng không (F1, CI95, VRAM, thời gian)?
 <điền>
