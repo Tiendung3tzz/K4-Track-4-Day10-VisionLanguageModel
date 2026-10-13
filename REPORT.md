@@ -57,7 +57,9 @@ Các số được đo lại trên dataset_version d10-21e4070301. Tôi đếm �
 <điền>
 
 ### Câu 8 — Tập test có 311 ảnh: khoảng tin cậy rộng thế nào, và điều đó giới hạn kết luận so sánh các setup ra sao?
-<điền>
+Với E0, bootstrap 1.000 lần của trọng tài cho CI95 = [0,073753; 0,129167], rộng 0,055414, tức khoảng 5,54 điểm phần trăm F1 quanh số đo 0,100535. Vì vậy chênh lệch nhỏ giữa các setup trên 311 ảnh chưa đủ để khẳng định một setup tốt hơn; cần đọc CI của từng lượt và tốt hơn nữa là bootstrap ghép cặp chênh lệch F1 trên cùng các ảnh.
+
+311 ảnh test chỉ thuộc ba giá trị session: num-4 có 15 ảnh, vlc-2025-02-18-23 có 213 và vlc-2025-02-19-17 có 83. Trọng tài lấy mẫu lại theo ảnh, trong khi các frame cùng video có thể tương quan, nên CI này có thể quá lạc quan khi dự đoán khả năng tổng quát sang phiên quay mới. CI cũng không đo biến động giữa các seed huấn luyện; tôi mới chạy một seed 42 cho mỗi setup. Tôi giữ nguyên cách chấm của đề và không coi 311 frame là 311 phiên quay độc lập.
 
 ### Câu 9 — Phân tích lỗi theo lớp: lớp nào kém nhất và vì sao (kích thước box, số mẫu, ngữ nghĩa)? Kèm ảnh minh hoạ.
 <điền>
@@ -67,4 +69,8 @@ Các số được đo lại trên dataset_version d10-21e4070301. Tôi đếm �
 
 ## Nhìn lại
 
-<điền: điều bạn chưa hiểu, lỗi dữ liệu hoặc mô hình bạn gặp mà công cụ chấm chưa bắt được>
+E1/E2/E3 đã chạy đủ 300 bước tối ưu trên T4, cả 900 giá trị loss đều hữu hạn. Loss trung bình 20 bước đầu → 20 bước cuối lần lượt là 0,8308 → 0,5676; 0,8113 → 0,5224; 0,8126 → 0,4847. Loss có dao động giữa các batch, nên chỉ giảm loss chưa chứng minh F1 định vị tốt hơn; vẫn cần suy luận và chấm checkpoint đã nạp lại đầy đủ.
+
+Tôi gặp lỗi visual bị lượng tử hoá ngoài ý muốn, lỗi tương thích torchao và một box train cao bằng 0. Các assert về dtype, module LoRA, mask và nhãn suy biến phát hiện được những lỗi này trước huấn luyện. Điều còn cần kiểm chứng là mức tổng quát sang phiên quay vật lý mới và độ ổn định giữa nhiều seed; giao tập session rỗng và CI theo ảnh chưa trả lời được hai vấn đề đó.
+
+Phiên Colab bị ngắt trong lúc chấm E1–E3; khi kết nối lại, Colab thông báo đã chạm giới hạn sử dụng GPU. Điểm chấm chưa tải về không được đưa vào bảng. Tôi đã kiểm tra các bản sao đầy đủ e1_backup.tar.gz, e2_backup.tar.gz và e3_backup.tar.gz trên máy; E2/E3 có extra_trainable.pt để khôi phục projector. Cả ba adapter cùng run.json đã sao lưu trong thư mục lab_day10 trên Google Drive; bản sao Drive chỉ chứa adapter và metadata, nên khôi phục E2/E3 cần thêm projector từ bản sao đầy đủ trên máy.
