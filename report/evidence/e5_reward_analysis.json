@@ -1,0 +1,74 @@
+{
+  "dataset_version": "d10-21e4070301",
+  "initial_checkpoint": "e3",
+  "giant_box_threshold_fraction": 0.5,
+  "giant_box_note": "A size flag alone is not evidence of reward hacking; unmatched flags also require no same-label GT at IoU >= 0.5.",
+  "full_split_output_analysis": {
+    "val": {
+      "e3": {
+        "n": 276,
+        "mean_reward": 0.42518076710202246,
+        "mean_n_pred": 2.1050724637681157,
+        "valid_json": 276,
+        "empty_with_gt": 0,
+        "empty_without_gt": 0,
+        "giant_box": 0,
+        "unmatched_giant_box": 0
+      },
+      "e5": {
+        "n": 276,
+        "mean_reward": 0.4175997662269632,
+        "mean_n_pred": 1.8333333333333333,
+        "valid_json": 276,
+        "empty_with_gt": 0,
+        "empty_without_gt": 0,
+        "giant_box": 0,
+        "unmatched_giant_box": 0
+      }
+    },
+    "test": {
+      "e3": {
+        "n": 311,
+        "mean_reward": 0.47103832711070676,
+        "mean_n_pred": 1.7845659163987138,
+        "valid_json": 311,
+        "empty_with_gt": 0,
+        "empty_without_gt": 0,
+        "giant_box": 0,
+        "unmatched_giant_box": 0
+      },
+      "e5": {
+        "n": 311,
+        "mean_reward": 0.47180199922412874,
+        "mean_n_pred": 1.6430868167202572,
+        "valid_json": 311,
+        "empty_with_gt": 0,
+        "empty_without_gt": 0,
+        "giant_box": 0,
+        "unmatched_giant_box": 0
+      }
+    }
+  },
+  "training_rollout_analysis": {
+    "n": 240,
+    "mean_reward": 0.3939687919121314,
+    "mean_n_pred": 1.8416666666666666,
+    "valid_json": 225,
+    "empty_with_gt": 0,
+    "empty_without_gt": 0,
+    "giant_box": 0,
+    "unmatched_giant_box": 0,
+    "n_groups": 60,
+    "zero_variance_groups": 3,
+    "first20_mean_reward": 0.3509253062288526,
+    "last20_mean_reward": 0.36907686551322055
+  },
+  "paired_test_comparison_e5_minus_e3": {
+    "delta_f1": 9.638770992437262e-05,
+    "paired_ci95": [
+      -0.0205096073517127,
+      0.021708670619259962
+    ]
+  },
+  "flagged_test_examples": []
+}
