@@ -122,4 +122,6 @@ E4 cũng hoàn tất 300 bước cho mỗi rank, cả 600 giá trị loss đều
 
 Lượt thử rank 4 trước đó được tạm dừng do ngân sách/tài nguyên GPU: log cuối quan sát 232 bước, checkpoint lưu gần nhất 200 bước và mới chấm 120/276 ảnh val (F1 0,3328 trên tập con này). Khi tiếp tục, tôi giữ riêng bản sao 200 bước và chạy lại rank 4 từ cùng model gốc đủ 300 bước, vì checkpoint cũ chỉ có adapter/projector, không có trạng thái optimizer để nối tiếp đúng lịch tối ưu. Số liệu của lượt thử không dùng trong bảng cuối, lựa chọn setup hay so sánh rank; bảng E4 dùng hai lượt 300 bước và bộ val/test hoàn chỉnh.
 
+Adapter E4 tại checkpoint 300 đã sao lưu trong cùng thư mục lab_day10 trên Google Drive: rank 4 là e4_rank_4_checkpoint_300_adapter.tar.gz; rank 64 gồm sáu phần .part001–.part006 và manifest SHA256. Tôi đã xác nhận đủ từng tệp sau khi tải lại phần 005 bị đứng. Để khôi phục rank 64, ghép các phần theo thứ tự trong manifest, kiểm tra SHA256 rồi giải nén; projector của cả hai rank cần lấy từ các gói checkpoint đầy đủ trên máy. Các bản sao Drive này chứa adapter và run.json, không chứa projector.
+
 Bước 9 tuỳ chọn: hàm reward đã qua bảy assert (hoàn hảo, JSON hỏng, sai lớp, thừa box, rỗng/rỗng, rỗng/có GT, có dự đoán/GT rỗng). RUN_E5=False, chưa chạy GRPO; do đó không có số E5 hoặc kết luận thực nghiệm về reward hacking/F1 sau RL.
