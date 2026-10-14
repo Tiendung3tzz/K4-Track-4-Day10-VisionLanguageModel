@@ -6,9 +6,9 @@ Họ tên: Tống Trần Tiến Dũng
 | Mã | Setup | Tham số huấn luyện | VRAM đỉnh (GB) | Phút | F1 | CI95 | FP/ảnh | F1 pothole | F1 crack | F1 manhole |
 |---|---|---|---|---|---|---|---|---|---|---|
 | E0 | zero-shot | 0 | 3,7785 | 10,3079 | 0,1005 | [0,0738; 0,1292] | 0,9807 | 0,1310 | 0,0271 | 0,2311 |
-| E1 | LoRA LLM | 33.030.144 | 6,4353 | 38,6841 | | | | | | |
-| E2 | + projector | 142.135.296 | 8,1285 | 39,7675 | | | | | | |
-| E3 | + LoRA ViT | 148.426.752 | 8,3067 | 48,1279 | | | | | | |
+| E1 | LoRA LLM | 33.030.144 | 6,4353 | 38,6841 | 0,2648 | [0,2267; 0,3038] | 1,1801 | 0,1579 | 0,1988 | 0,5179 |
+| E2 | + projector | 142.135.296 | 8,1285 | 39,7675 | 0,3306 | [0,2899; 0,3706] | 1,0804 | 0,1947 | 0,2689 | 0,5887 |
+| E3 | + LoRA ViT | 148.426.752 | 8,3067 | 48,1279 | 0,4569 | [0,4197; 0,4991] | 0,9486 | 0,3014 | 0,4071 | 0,6780 |
 | E4 | (ghi biến và giá trị) | | | | | | | | | |
 
 ## 10 câu hỏi (trả lời bằng **số của bạn**, không chép lại tài liệu)
@@ -54,23 +54,57 @@ Dữ liệu gồm các frame cắt từ video, nên các frame gần nhau thư�
 Các số được đo lại trên dataset_version d10-21e4070301. Tôi đếm được 13 giá trị session ở train, 2 ở val và 3 ở test. Với tên ảnh chỉ có số, trọng tài định nghĩa session bằng số thứ tự chia nguyên cho 50; đây là cách gom do đề quy định, chưa chứng minh mỗi nhóm là một phiên quay vật lý độc lập. Tôi giữ nguyên split và chỉ xác nhận các giá trị session không giao nhau. Tập val chỉ có 66 box pothole, so với 470 crack và 103 manhole; vì vậy cần đọc F1 từng lớp thay vì chỉ nhìn F1 micro. Có một box crack trong train với chiều cao bằng 0; notebook thông báo và bỏ box suy biến khỏi đáp án SFT, còn dữ liệu/split và GT của trọng tài giữ nguyên.
 
 ### Câu 7 — So sánh E1/E2/E3: mở projector và LoRA trên ViT có đáng không (F1, CI95, VRAM, thời gian)?
-<điền>
+E1 tăng F1 từ 0,1005 của E0 lên 0,2648 (tăng 0,1643), JSON hợp lệ 100% và không thiếu ảnh. E2 mở thêm 109.105.152 tham số projector, đạt F1 0,3306: tăng 0,0658 so với E1, đổi lại VRAM tăng 1,6932 GiB và thời gian train tăng 1,0834 phút. E3 thêm LoRA ViT đạt F1 0,4569: tăng 0,1263 so với E2, VRAM chỉ tăng 0,1782 GiB nhưng thời gian tăng 8,3604 phút. E3 dùng nhiều VRAM nhất (8,3067 GiB) vì có gradient qua ViT và tham số/gradient/trạng thái AdamW float32 của projector; gradient checkpointing giúp giới hạn activation cần lưu. Cột GB giữ tên của mẫu, nhưng số đo thực tế là GiB (số byte chia 2**30).
+
+Trong ngân sách T4 của lượt chạy này, E3 là lựa chọn đáng nhất: 48,1279 phút và 8,3067 GiB cho F1 cao hơn rõ rệt, FP/ảnh giảm còn 0,9486, so với 1,1801 của E1 và 1,0804 của E2. Nếu cần mức VRAM thấp nhất thì E1 chỉ dùng 6,4353 GiB; E2 cải thiện chất lượng với thời gian gần E1 nhưng cần thêm bộ nhớ do mở đầy đủ projector.
+
+CI95 của E1/E2 là [0,2267; 0,3038] và [0,2899; 0,3706], có chồng lấn; chồng lấn không tự chứng minh hai setup tương đương. Tôi bootstrap ghép cặp 1.000 lần, seed 0, lấy cùng chỉ số ảnh cho mỗi model và dùng TP/FP/FN của trọng tài: CI95 của chênh lệch E2−E1 là [0,0248; 0,1041], còn E3−E2 là [0,0864; 0,1686]; cả hai đều trên 0. CI của E3 [0,4197; 0,4991] cũng tách khỏi E2. Kết luận này áp dụng cho các checkpoint và bộ ảnh hiện tại, với giới hạn ở Câu 8. E4 chọn E3 bằng validation (E1: 0,2281; E2: 0,3031; E3: 0,3820), không đổi lựa chọn dựa trên test.
 
 ### Câu 8 — Tập test có 311 ảnh: khoảng tin cậy rộng thế nào, và điều đó giới hạn kết luận so sánh các setup ra sao?
-Với E0, bootstrap 1.000 lần của trọng tài cho CI95 = [0,073753; 0,129167], rộng 0,055414, tức khoảng 5,54 điểm phần trăm F1 quanh số đo 0,100535. Vì vậy chênh lệch nhỏ giữa các setup trên 311 ảnh chưa đủ để khẳng định một setup tốt hơn; cần đọc CI của từng lượt và tốt hơn nữa là bootstrap ghép cặp chênh lệch F1 trên cùng các ảnh.
+Trọng tài bootstrap 1.000 lần theo ảnh. Độ rộng CI95 của E0/E1/E2/E3 lần lượt là 0,0554; 0,0770; 0,0808; 0,0794, tương đương khoảng 5,54–8,08 điểm phần trăm F1. Ví dụ E3 có F1 0,4569 nhưng CI [0,4197; 0,4991]; một chênh lệch nhỏ vài điểm không đủ để kết luận nếu chỉ nhìn số F1 đơn lẻ. Tôi kiểm tra chênh lệch bằng bootstrap ghép cặp trên cùng ảnh, đồng thời xác nhận CI riêng từng model tính lại từ dự đoán khớp chính xác file evidence.
 
 311 ảnh test chỉ thuộc ba giá trị session: num-4 có 15 ảnh, vlc-2025-02-18-23 có 213 và vlc-2025-02-19-17 có 83. Trọng tài lấy mẫu lại theo ảnh, trong khi các frame cùng video có thể tương quan, nên CI này có thể quá lạc quan khi dự đoán khả năng tổng quát sang phiên quay mới. CI cũng không đo biến động giữa các seed huấn luyện; tôi mới chạy một seed 42 cho mỗi setup. Tôi giữ nguyên cách chấm của đề và không coi 311 frame là 311 phiên quay độc lập.
 
 ### Câu 9 — Phân tích lỗi theo lớp: lớp nào kém nhất và vì sao (kích thước box, số mẫu, ngữ nghĩa)? Kèm ảnh minh hoạ.
-<điền>
+Ở E3 (SFT được chọn bằng validation), pothole kém nhất: F1 = 0,3014, 33 TP/65 FP/88 FN, recall chỉ 0,2727. Crack đạt F1 0,4071 (127 TP/198 FP/172 FN); manhole đạt 0,6780 (100 TP/32 FP/63 FN). Crack vẫn đóng góp nhiều FP nhất. Thứ tự khác E0, nơi crack thấp nhất (0,0271), nên không thể coi một lớp luôn kém nhất ở mọi setup.
+
+Box pothole trên test có diện tích trung vị 0,4193% ảnh và cạnh ngắn trung vị 22 pixel; manhole là 0,6688%/24 pixel, crack là 1,9813%/49 pixel. Pothole nhỏ, ít tương phản và có thể giống mảng vá/bóng tối; lệch vài pixel có thể làm IoU xuống dưới 0,5. Crack có bbox lớn hơn nhưng tín hiệu vết nứt mảnh, nhiều nhánh và bbox chứa nhiều nền, nên khó chọn đúng phạm vi. Đây là lý giải từ thống kê và ảnh quan sát, không phải kết luận nhân quả từ một ablation riêng. Số mẫu không giải thích toàn bộ: train có 1.074 box pothole, nhiều hơn 691 manhole, nhưng F1 vẫn thấp hơn; val cũng chỉ có 66 pothole so với 470 crack.
+
+Sáu ảnh dưới dùng GT xanh, dự đoán đỏ; TP/FP/FN trong tiêu đề là tổng của ảnh. Ba ảnh đầu có TP=1, FP=0, FN=0 cho từng lớp. Hình 4 (`vlcsnap-00210`) có hai GT pothole nhưng các box dự đoán lệch/phạm vi không khớp, đồng thời có crack thừa: TP=0, FP=3, FN=2. Hình 5 (`vlcsnap-00203`) đoán đúng lớp crack nhưng box quá hẹp so với GT: TP=0, FP=1, FN=1. Hình 6 (`vlcsnap-00209`) gọi vùng crack là pothole và bỏ sót manhole ở bên phải: TP=0, FP=1, FN=2.
+
+Hình 1 — pothole khớp.
+
+![E3 pothole khớp](report/examples/e3_1.png)
+
+Hình 2 — crack khớp.
+
+![E3 crack khớp](report/examples/e3_2.png)
+
+Hình 3 — manhole khớp.
+
+![E3 manhole khớp](report/examples/e3_3.png)
+
+Hình 4 — pothole chưa đạt IoU, có box thừa.
+
+![E3 pothole lỗi](report/examples/e3_4.png)
+
+Hình 5 — bbox crack quá hẹp.
+
+![E3 crack lỗi](report/examples/e3_5.png)
+
+Hình 6 — sai lớp và bỏ sót manhole.
+
+![E3 manhole lỗi](report/examples/e3_6.png)
 
 ### Câu 10 — E4: bạn đổi biến nào, kết quả thế nào, và kết luận có đáng tin không?
 <điền>
 
 ## Nhìn lại
 
-E1/E2/E3 đã chạy đủ 300 bước tối ưu trên T4, cả 900 giá trị loss đều hữu hạn. Loss trung bình 20 bước đầu → 20 bước cuối lần lượt là 0,8308 → 0,5676; 0,8113 → 0,5224; 0,8126 → 0,4847. Loss có dao động giữa các batch, nên chỉ giảm loss chưa chứng minh F1 định vị tốt hơn; vẫn cần suy luận và chấm checkpoint đã nạp lại đầy đủ.
+E1/E2/E3 đã chạy đủ 300 bước tối ưu trên T4, cả 900 giá trị loss đều hữu hạn. Loss trung bình 20 bước đầu → 20 bước cuối lần lượt là 0,8308 → 0,5676; 0,8113 → 0,5224; 0,8126 → 0,4847. Loss có dao động giữa các batch, nên tôi đánh giá bằng suy luận từ checkpoint đã nạp lại đầy đủ, thay vì suy ra F1 từ loss. Kết quả test E1/E2/E3 lần lượt là 0,2648/0,3306/0,4569.
 
 Tôi gặp lỗi visual bị lượng tử hoá ngoài ý muốn, lỗi tương thích torchao và một box train cao bằng 0. Các assert về dtype, module LoRA, mask và nhãn suy biến phát hiện được những lỗi này trước huấn luyện. Điều còn cần kiểm chứng là mức tổng quát sang phiên quay vật lý mới và độ ổn định giữa nhiều seed; giao tập session rỗng và CI theo ảnh chưa trả lời được hai vấn đề đó.
 
-Phiên Colab bị ngắt trong lúc chấm E1–E3; khi kết nối lại, Colab thông báo đã chạm giới hạn sử dụng GPU. Điểm chấm chưa tải về không được đưa vào bảng. Tôi đã kiểm tra các bản sao đầy đủ e1_backup.tar.gz, e2_backup.tar.gz và e3_backup.tar.gz trên máy; E2/E3 có extra_trainable.pt để khôi phục projector. Cả ba adapter cùng run.json đã sao lưu trong thư mục lab_day10 trên Google Drive; bản sao Drive chỉ chứa adapter và metadata, nên khôi phục E2/E3 cần thêm projector từ bản sao đầy đủ trên máy.
+Phiên Colab cũ bị ngắt trong lúc chấm E1–E3 và tài khoản cũ chạm giới hạn GPU. Tôi chuyển sang T4 của tài khoản khác, chuyển lại ba bản sao đầy đủ và kiểm tra SHA256 của từng gói khớp bản gốc. Không huấn luyện lại E1/E2/E3; thời gian, VRAM và loss giữ nguyên từ lượt train ban đầu. Tôi nạp lại model gốc, adapter và extra_trainable.pt của E2/E3, chấm đủ 276 ảnh val và 311 ảnh test mỗi setup rồi tải ngay dự đoán/evidence về máy. Kết quả dang dở của phiên cũ không được dùng để chọn setup hay điền số. E0 giữ nguyên 311 dự đoán cũ; chấm lại cùng dự đoán chỉ để đồng bộ metadata/output notebook, và đã assert F1/CI/TP-FP-FN không đổi.
+
+Cả ba adapter cùng run.json đã sao lưu trong thư mục lab_day10 trên Google Drive. Bản sao Drive chỉ chứa adapter và metadata; khôi phục E2/E3 cần thêm projector từ e2_backup.tar.gz/e3_backup.tar.gz đầy đủ trên máy. Sau khi đổi tài khoản, tôi xác nhận dataset_version vẫn là d10-21e4070301, giữ nguyên split của đề và chỉ dùng validation để chọn E3 làm gốc cho E4.
