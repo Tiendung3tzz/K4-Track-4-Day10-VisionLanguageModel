@@ -9,7 +9,8 @@ Họ tên: Tống Trần Tiến Dũng
 | E1 | LoRA LLM | 33.030.144 | 6,4353 | 38,6841 | 0,2648 | [0,2267; 0,3038] | 1,1801 | 0,1579 | 0,1988 | 0,5179 |
 | E2 | + projector | 142.135.296 | 8,1285 | 39,7675 | 0,3306 | [0,2899; 0,3706] | 1,0804 | 0,1947 | 0,2689 | 0,5887 |
 | E3 | + LoRA ViT | 148.426.752 | 8,3067 | 48,1279 | 0,4569 | [0,4197; 0,4991] | 0,9486 | 0,3014 | 0,4071 | 0,6780 |
-| E4 | (ghi biến và giá trị) | | | | | | | | | |
+| E4 | E3, rank=4, alpha=8 | 118.935.552 | 7,8686 | 57,4464 | 0,4105 | [0,3713; 0,4554] | 1,0386 | 0,3028 | 0,3313 | 0,6738 |
+| E4 | E3, rank=64, alpha=128 | 266.391.552 | 10,0946 | 53,0345 | 0,4586 | [0,4167; 0,5048] | 0,8489 | 0,3097 | 0,3980 | 0,7018 |
 
 ## 10 câu hỏi (trả lời bằng **số của bạn**, không chép lại tài liệu)
 
@@ -66,7 +67,7 @@ Trọng tài bootstrap 1.000 lần theo ảnh. Độ rộng CI95 của E0/E1/E2/
 311 ảnh test chỉ thuộc ba giá trị session: num-4 có 15 ảnh, vlc-2025-02-18-23 có 213 và vlc-2025-02-19-17 có 83. Trọng tài lấy mẫu lại theo ảnh, trong khi các frame cùng video có thể tương quan, nên CI này có thể quá lạc quan khi dự đoán khả năng tổng quát sang phiên quay mới. CI cũng không đo biến động giữa các seed huấn luyện; tôi mới chạy một seed 42 cho mỗi setup. Tôi giữ nguyên cách chấm của đề và không coi 311 frame là 311 phiên quay độc lập.
 
 ### Câu 9 — Phân tích lỗi theo lớp: lớp nào kém nhất và vì sao (kích thước box, số mẫu, ngữ nghĩa)? Kèm ảnh minh hoạ.
-Ở E3 (SFT được chọn bằng validation), pothole kém nhất: F1 = 0,3014, 33 TP/65 FP/88 FN, recall chỉ 0,2727. Crack đạt F1 0,4071 (127 TP/198 FP/172 FN); manhole đạt 0,6780 (100 TP/32 FP/63 FN). Crack vẫn đóng góp nhiều FP nhất. Thứ tự khác E0, nơi crack thấp nhất (0,0271), nên không thể coi một lớp luôn kém nhất ở mọi setup.
+Ở E3 (setup gốc cho E4 được chọn bằng validation trong E1–E3), pothole kém nhất: F1 = 0,3014, 33 TP/65 FP/88 FN, recall chỉ 0,2727. Crack đạt F1 0,4071 (127 TP/198 FP/172 FN); manhole đạt 0,6780 (100 TP/32 FP/63 FN). Crack vẫn đóng góp nhiều FP nhất. Thứ tự khác E0, nơi crack thấp nhất (0,0271), nên không thể coi một lớp luôn kém nhất ở mọi setup.
 
 Box pothole trên test có diện tích trung vị 0,4193% ảnh và cạnh ngắn trung vị 22 pixel; manhole là 0,6688%/24 pixel, crack là 1,9813%/49 pixel. Pothole nhỏ, ít tương phản và có thể giống mảng vá/bóng tối; lệch vài pixel có thể làm IoU xuống dưới 0,5. Crack có bbox lớn hơn nhưng tín hiệu vết nứt mảnh, nhiều nhánh và bbox chứa nhiều nền, nên khó chọn đúng phạm vi. Đây là lý giải từ thống kê và ảnh quan sát, không phải kết luận nhân quả từ một ablation riêng. Số mẫu không giải thích toàn bộ: train có 1.074 box pothole, nhiều hơn 691 manhole, nhưng F1 vẫn thấp hơn; val cũng chỉ có 66 pothole so với 470 crack.
 
@@ -97,7 +98,15 @@ Hình 6 — sai lớp và bỏ sót manhole.
 ![E3 manhole lỗi](report/examples/e3_6.png)
 
 ### Câu 10 — E4: bạn đổi biến nào, kết quả thế nào, và kết luận có đáng tin không?
-<điền>
+Tôi đổi đúng biến rank của E3, setup được chọn bằng F1 validation 0,3820 của E1–E3: r=4/alpha=8 và r=64/alpha=128 theo quy tắc alpha=2*r của GUIDE. Mỗi giá trị khởi tạo lại từ cùng model gốc, không nối tiếp checkpoint của rank còn lại. Giữ nguyên LoRA LLM+ViT, mở projector float32, NF4 cho LLM nền, dropout 0,05, seed 42, toàn bộ 1.422 ảnh train, batch 2/tích luỹ 4, lr 2e-4, warmup 5%, cosine và 300 bước tối ưu; cấu hình trong hai run.json đã được đối chiếu với E3.
+
+Rank 4: F1 test 0,4105, CI95 [0,3713; 0,4554], TP/FP/FN = 234/323/349, JSON hợp lệ 100,0000% và không thiếu ảnh. F1 validation là 0,3570; chênh lệch test so với E3 rank 16 là -0,0464, CI95 ghép cặp [-0,0828; -0,0100].
+
+Rank 64: F1 test 0,4586, CI95 [0,4167; 0,5048], TP/FP/FN = 252/264/331, JSON hợp lệ 100,0000% và không thiếu ảnh. F1 validation là 0,3373; chênh lệch test so với E3 rank 16 là 0,0017, CI95 ghép cặp [-0,0351; 0,0370].
+
+Chênh lệch F1 rank 64−rank 4 = 0,0481, CI95 bootstrap ghép cặp [0,0087; 0,0857] (1.000 lần, seed 0, cùng chỉ số ảnh cho hai model; CI riêng khớp evidence). CI ghép cặp nằm hoàn toàn trên 0, nên rank 64 cải thiện so với rank 4 trên các ảnh và checkpoint này. 311 ảnh vẫn chỉ thuộc ba nhóm session và có thể gồm frame tương quan; CI theo ảnh không đo biến động giữa nhiều seed hay khả năng tổng quát sang video mới. Vì chỉ có một seed cho mỗi rank, tôi không kết luận rank cao luôn tốt hơn trong mọi dữ liệu. Hai số đo đầy đủ nằm trong report/evidence/e4_rank_4.json và e4_rank_64.json; thời gian/VRAM/tham số trong bảng lấy từ từng run thực tế.
+
+So với E3 rank 16, rank 64 chỉ tăng F1 test 0,0017 và CI chênh lệch chứa 0, nên chưa chứng minh cải thiện rõ rệt. Trong lượt đo này, rank 64 dùng thêm 117.964.800 tham số huấn luyện, 1,7880 GiB VRAM đỉnh và 4,9066 phút train so với E3. F1 validation của rank 16/4/64 lần lượt là 0,3820/0,3570/0,3373; tôi giữ E3 rank 16 là lựa chọn theo validation, không đổi setup vì rank 64 nhỉnh hơn trên test.
 
 ## Nhìn lại
 
@@ -108,3 +117,7 @@ Tôi gặp lỗi visual bị lượng tử hoá ngoài ý muốn, lỗi tương 
 Phiên Colab cũ bị ngắt trong lúc chấm E1–E3 và tài khoản cũ chạm giới hạn GPU. Tôi chuyển sang T4 của tài khoản khác, chuyển lại ba bản sao đầy đủ và kiểm tra SHA256 của từng gói khớp bản gốc. Không huấn luyện lại E1/E2/E3; thời gian, VRAM và loss giữ nguyên từ lượt train ban đầu. Tôi nạp lại model gốc, adapter và extra_trainable.pt của E2/E3, chấm đủ 276 ảnh val và 311 ảnh test mỗi setup rồi tải ngay dự đoán/evidence về máy. Kết quả dang dở của phiên cũ không được dùng để chọn setup hay điền số. E0 giữ nguyên 311 dự đoán cũ; chấm lại cùng dự đoán chỉ để đồng bộ metadata/output notebook, và đã assert F1/CI/TP-FP-FN không đổi.
 
 Cả ba adapter cùng run.json đã sao lưu trong thư mục lab_day10 trên Google Drive. Bản sao Drive chỉ chứa adapter và metadata; khôi phục E2/E3 cần thêm projector từ e2_backup.tar.gz/e3_backup.tar.gz đầy đủ trên máy. Sau khi đổi tài khoản, tôi xác nhận dataset_version vẫn là d10-21e4070301, giữ nguyên split của đề và chỉ dùng validation để chọn E3 làm gốc cho E4.
+
+E4 cũng hoàn tất 300 bước cho mỗi rank, cả 600 giá trị loss đều hữu hạn. Kênh log của lượt rank 4 hoàn chỉnh từng mất kết nối; tôi nối lại quan sát mà không ngắt kernel và kiểm tra đủ 300 loss trong run.json. Một lượt rank 64 cũng mất runtime sau log 130 bước; Colab trả 503 khi cấp lại T4 trên tài khoản đó. Tôi đổi tài khoản và chạy lại rank 64 đầy đủ; lượt gián đoạn không được dùng để điền bảng hay ghép dự đoán. Loss trung bình 20 bước đầu → 20 bước cuối là rank 4: 0,8250 → 0,4969; rank 64: 0,7742 → 0,4922. Một phiên T4 khác bị mất trong lúc khởi chạy E4; CLI vẫn chờ nên phải đối chiếu danh sách phiên từ máy chủ và tạo lại runtime. Lượt dang dở không có kết quả hoàn chỉnh để sử dụng; hai evidence E4 trong báo cáo đều lấy từ lượt train/chấm hoàn tất, không ghép dự đoán dở giữa các runtime. Hai gói e4_rank_4_backup.tar.gz/e4_rank_64_backup.tar.gz đầy đủ, gồm adapter, projector và run.json, đã tải về máy.
+
+Lượt thử rank 4 trước đó được tạm dừng do ngân sách/tài nguyên GPU: log cuối quan sát 232 bước, checkpoint lưu gần nhất 200 bước và mới chấm 120/276 ảnh val (F1 0,3328 trên tập con này). Khi tiếp tục, tôi giữ riêng bản sao 200 bước và chạy lại rank 4 từ cùng model gốc đủ 300 bước, vì checkpoint cũ chỉ có adapter/projector, không có trạng thái optimizer để nối tiếp đúng lịch tối ưu. Số liệu của lượt thử không dùng trong bảng cuối, lựa chọn setup hay so sánh rank; bảng E4 dùng hai lượt 300 bước và bộ val/test hoàn chỉnh.
